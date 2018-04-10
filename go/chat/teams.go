@@ -187,7 +187,7 @@ func NewTeamsNameInfoSource(g *globals.Context) *TeamsNameInfoSource {
 	}
 }
 
-func (t *TeamsNameInfoSource) makeNameInfo(ctx context.Context, team *teams.Team, public bool) (res *types.NameInfo, err error) {
+func (t *TeamsNameInfoSource) makeNameInfo(ctx context.Context, team *teams.Team, public bool, includeEphemeral bool) (res *types.NameInfo, err error) {
 	res = types.NewNameInfo()
 	res.ID, err = chat1.TeamIDToTLFID(team.ID)
 	if err != nil {
@@ -197,10 +197,13 @@ func (t *TeamsNameInfoSource) makeNameInfo(ctx context.Context, team *teams.Team
 	if res.CryptKeys, err = getTeamKeys(ctx, team, public); err != nil {
 		return res, err
 	}
+
+	// TODO: implement ephemeral key fetching here
+
 	return res, nil
 }
 
-func (t *TeamsNameInfoSource) Lookup(ctx context.Context, name string, public bool) (res *types.NameInfo, err error) {
+func (t *TeamsNameInfoSource) Lookup(ctx context.Context, name string, public bool, includeEphemeral bool) (res *types.NameInfo, err error) {
 	defer t.Trace(ctx, func() error { return err }, fmt.Sprintf("Lookup(%s)", name))()
 	team, err := teams.Load(ctx, t.G().ExternalG(), keybase1.LoadTeamArg{
 		Name:        name, // Loading by name is a last resort and will always cause an extra roundtrip.
@@ -210,7 +213,7 @@ func (t *TeamsNameInfoSource) Lookup(ctx context.Context, name string, public bo
 	if err != nil {
 		return res, err
 	}
-	return t.makeNameInfo(ctx, team, public)
+	return t.makeNameInfo(ctx, team, public, includeEphemeral)
 }
 
 func (t *TeamsNameInfoSource) EncryptionKeys(ctx context.Context, name string, teamID chat1.TLFID,
@@ -221,7 +224,7 @@ func (t *TeamsNameInfoSource) EncryptionKeys(ctx context.Context, name string, t
 	if err != nil {
 		return res, err
 	}
-	return t.makeNameInfo(ctx, team, public)
+	return t.makeNameInfo(ctx, team, public, includeEphemeral)
 }
 
 func (t *TeamsNameInfoSource) DecryptionKeys(ctx context.Context, name string, teamID chat1.TLFID,
@@ -234,7 +237,7 @@ func (t *TeamsNameInfoSource) DecryptionKeys(ctx context.Context, name string, t
 	if err != nil {
 		return res, err
 	}
-	return t.makeNameInfo(ctx, team, public)
+	return t.makeNameInfo(ctx, team, public, includeEphemeral)
 }
 
 type ImplicitTeamsNameInfoSource struct {
